@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using ToDoListApi.Contracts;
 using ToDoListApi.Data;
+using ToDoListApi.Models;
 
 namespace ToDoListApi.Controllers
 {
@@ -13,76 +16,100 @@ namespace ToDoListApi.Controllers
     [ApiController]
     public class TasksController : Controller
     {
-        private readonly ToDoListDbContext _context;
+        private readonly IMapper _mapper;
+        private readonly ITaskRepository _taskRepository;
 
-        public TasksController(ToDoListDbContext context)
+        public TasksController(ITaskRepository taskRepository, IMapper mapper)
         {
-            _context = context;
+            _taskRepository = taskRepository;
+            _mapper = mapper;
         }
 
-        // GET: Tasks
+        // GET: api/<TasksController>
         [HttpGet]
-        public async Task<IActionResult> Get()
+        public async Task<ActionResult<IEnumerable<TaskDto>>> GetTasks()
         {
-            return Ok(await _context.Tasks.ToListAsync());
+            var tasks = await _taskRepository.GetAllAsync();
+
+            var records = _mapper.Map<List<TaskDto>>(tasks);
+            return Ok(records);
         }
 
-        // GET: Tasks/Details/5
+        // GET: api/<TasksController>/5
         [HttpGet("{id}")]
-        public async Task<IActionResult> Details(int? id)
+        public async Task<ActionResult<TaskDto>> GetTask(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            var task = await _taskRepository.GetAsync(id);
 
-            var task = await _context.Tasks
-                .FirstOrDefaultAsync(m => m.Id == id);
             if (task == null)
             {
                 return NotFound();
             }
 
-            return View(task);
+            var record = _mapper.Map<TaskDto>(task);
+            return Ok(record);
         }
 
-        // POST: Tasks/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        // POST: api/<TasksController>
         [HttpPost]
-        public async Task<IActionResult> Create([Bind("Id,Title,Description,Status")] Data.Task task)
+        public async Task<ActionResult<Data.Task>> CreateTask([FromBody] TaskDto taskDto)
         {
-            if (ModelState.IsValid)
-            {
-                _context.Add(task);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(task);
+            var task = _mapper.Map<Data.Task>(taskDto);
+
+            await _taskRepository.AddAsync(task);
+
+            return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
         }
 
-        // GET: Tasks/Delete/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int? id)
+        // PUT api/<TasksController>/5
+        [HttpPut("{id}")]
+        public async Task<ActionResult<Data.Task>> UpdateTask(int id, [FromBody] TaskDto taskDto)
         {
-            if (id == null)
+            if (id != taskDto.Id)
             {
-                return NotFound();
+                return BadRequest();
             }
 
-            var task = await _context.Tasks
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var task = await _taskRepository.GetAsync(id);
+
             if (task == null)
             {
                 return NotFound();
             }
 
-            return View(task);
+            _mapper.Map(taskDto, task);
+
+            try
+            {
+                await _taskRepository.UpdateAsync(task);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!await TaskExists(id))
+                {
+                    return NotFound(id);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
         }
 
-        private bool TaskExists(int id)
+        // GET: api/<TasksController>/5
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<Data.Task>> DeleteTask(int id)
         {
-            return _context.Tasks.Any(e => e.Id == id);
+            await _taskRepository.DeleteAsync(id);
+
+            return NoContent();
+        }
+
+        private async Task<bool> TaskExists(int id)
+        {
+            return await _taskRepository.Exists(id);
         }
     }
 }

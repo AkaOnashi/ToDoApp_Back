@@ -7,7 +7,7 @@ namespace ToDoListApi.Configurations
     {
         public MapperConfig() 
         {
-            CreateMap<Task, TaskDto>().ReverseMap();
+            CreateMap<Data.Task, TaskDto>().ReverseMap();
         }
     }
 }
