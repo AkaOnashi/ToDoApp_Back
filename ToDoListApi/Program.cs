@@ -1,9 +1,12 @@
+using FluentValidation.AspNetCore;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using ToDoListApi.Configurations;
 using ToDoListApi.Contracts;
 using ToDoListApi.Data;
 using ToDoListApi.Repository;
+using ToDoListApi.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,9 +16,12 @@ builder.Services.AddDbContext<ToDoListDbContext>(options => {
     options.UseSqlServer(connectionString);
 });
 
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddValidatorsFromAssemblyContaining<TaskDtoValidator>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 
 builder.Services.AddControllers();
 
