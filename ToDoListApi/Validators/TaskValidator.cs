@@ -18,7 +18,7 @@ namespace ToDoListApi.Validators
                 .WithMessage("Description is too long.");
 
             RuleFor(t => t.Status)
-                .NotEmpty()
+                .NotNull()
                 .IsInEnum()
                 .WithMessage("{PropertyName} has a range of values ​​that does not include {PropertyValue}");
         }

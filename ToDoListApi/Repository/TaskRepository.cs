@@ -1,4 +1,5 @@
-﻿using ToDoListApi.Contracts;
+﻿using Microsoft.EntityFrameworkCore;
+using ToDoListApi.Contracts;
 using ToDoListApi.Data;
 
 namespace ToDoListApi.Repository
@@ -9,6 +10,11 @@ namespace ToDoListApi.Repository
         public TaskRepository(Data.ToDoListDbContext context) : base(context)
         {
             _context = context;
+        }
+
+        public async Task<List<Data.Task>> GetByStatusAsync(TaskStatuses taskStatuses)
+        {
+            return await _context.Tasks.Where(t => t.Status == taskStatuses).ToListAsync();
         }
     }
 }

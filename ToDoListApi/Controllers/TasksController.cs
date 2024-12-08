@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Build.Framework;
 using Microsoft.EntityFrameworkCore;
 using ToDoListApi.Contracts;
 using ToDoListApi.Data;
@@ -12,7 +13,7 @@ using ToDoListApi.Models;
 
 namespace ToDoListApi.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/tasks")]
     [ApiController]
     public class TasksController : Controller
     {
@@ -25,7 +26,7 @@ namespace ToDoListApi.Controllers
             _mapper = mapper;
         }
 
-        // GET: api/<TasksController>
+        // GET: api/tasks
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TaskDto>>> GetTasks()
         {
@@ -35,7 +36,7 @@ namespace ToDoListApi.Controllers
             return Ok(records);
         }
 
-        // GET: api/<TasksController>/5
+        // GET: api/tasks/5
         [HttpGet("{id}")]
         public async Task<ActionResult<TaskDto>> GetTask(int id)
         {
@@ -50,7 +51,17 @@ namespace ToDoListApi.Controllers
             return Ok(record);
         }
 
-        // POST: api/<TasksController>
+        // GET: api/tasks/5
+        [HttpGet("status/{taskStatuses}")]
+        public async Task<ActionResult<TaskDto>> GetTaskByStatus(TaskStatuses taskStatuses)
+        {
+            var tasks = await _taskRepository.GetByStatusAsync(taskStatuses);
+
+            var records = _mapper.Map<List<TaskDto>>(tasks);
+            return Ok(records);
+        }
+
+        // POST: api/tasks
         [HttpPost]
         public async Task<ActionResult<Data.Task>> CreateTask([FromBody] TaskDto taskDto)
         {
@@ -61,16 +72,11 @@ namespace ToDoListApi.Controllers
             return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
         }
 
-        // PUT api/<TasksController>/5
-        [HttpPut("{id}")]
-        public async Task<ActionResult<Data.Task>> UpdateTask(int id, [FromBody] TaskDto taskDto)
+        // PUT api/tasks
+        [HttpPut]
+        public async Task<ActionResult<Data.Task>> UpdateTask([FromBody] TaskDto taskDto)
         {
-            if (id != taskDto.Id)
-            {
-                return BadRequest();
-            }
-
-            var task = await _taskRepository.GetAsync(id);
+            var task = await _taskRepository.GetAsync(taskDto.Id);
 
             if (task == null)
             {
@@ -85,9 +91,9 @@ namespace ToDoListApi.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!await TaskExists(id))
+                if (!await TaskExists(task.Id))
                 {
-                    return NotFound(id);
+                    return NotFound(task.Id);   
                 }
                 else
                 {
@@ -98,7 +104,7 @@ namespace ToDoListApi.Controllers
             return NoContent();
         }
 
-        // GET: api/<TasksController>/5
+        // GET: api/tasks/5
         [HttpDelete("{id}")]
         public async Task<ActionResult<Data.Task>> DeleteTask(int id)
         {
